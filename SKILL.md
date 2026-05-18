@@ -70,13 +70,26 @@ Build a structured diff with three sections:
 
 **C. Overlap conflicts** — protected blocks (lunch, decompress, morning, wind-down) that intersect with another event. Split into:
 
-- **User-owned movable** — Focus blocks owned by the user that eat into a protected block. **Propose a move.**
-- **Other-owned / multi-party** — meetings organised by colleagues that clash. **Flag, do not auto-move.** Offer the user three options:
-  1. Skip the protected block that day
-  2. Shift the protected block (just that instance) to a non-clashing slot
-  3. Ask the other organiser to move (user does this manually)
+- **User-owned movable** — Focus blocks owned by the user that eat into a protected block. **Propose a move** of the focus block. Protected block stays put.
+- **Other-owned / multi-party** — meetings organised by colleagues that clash. The meeting is non-movable, so the skill **auto-proposes a shifted slot for the protected block** (just that instance) using the slot-finder algorithm below. Present one concrete proposal, not a buffet. The user approves, rejects, or asks for a different time.
 
 Present the diff as a markdown table per section. Do not bundle them — the user needs to see each class separately.
+
+#### Slot-finder algorithm (for shifting a protected block this-instance-only)
+
+When a protected block needs to move around a non-movable event, find the best alternative slot the **same day** using these rules, in order:
+
+1. **Same duration** — preserve the block's original length (60 min lunch stays 60 min, 15 min decompress stays 15 min).
+2. **Within working hours** — default 09:00–17:00 local time; respect any morning/wind-down bookends as outer bounds.
+3. **No other overlaps** — the proposed slot must be free against every other event on that day.
+4. **Adjacent to the original window** — search ±2 hours from the original start time first; widen to ±4 only if nothing fits.
+5. **Same-shape preference for lunch** — lunch prefers landing on a full hour (12:00, 13:00, 14:00) over odd starts (12:15, 13:45).
+6. **Later beats earlier** — given two equally-valid slots, push later. A lunch at 13:00 beats a lunch at 11:00; a decompress after the meeting beats a decompress before it.
+7. **Never collapse two protected blocks together** — if shifting lunch to 13:00 would butt against a 13:00 decompress, find the next valid slot.
+
+If the algorithm finds **no valid slot**, fall back to flagging — present the three manual options (skip the block / shift across days / ask the organiser to move).
+
+When a valid slot is found, present as: **"Tuesday lunch shifts 12:00→13:00 → 13:00→14:00 (avoids HOD Weekly 12:30–13:00). OK?"** — one concrete shift, not a menu.
 
 ### Step 4 — Apply (only on explicit approval)
 
@@ -168,8 +181,8 @@ See [`references/google-calendar-colours.md`](references/google-calendar-colours
 
 | Protected block | Overlapping event | Owner | Action |
 |---|---|---|---|
-| 🥪 Lunch Mon 12:00–13:00 | Focus: Activation PRD 12:30–14:00 | You | **Propose move:** Focus → 13:00–14:30 |
-| 🥪 Lunch Tue 12:00–13:00 | HOD Weekly 12:30–13:00 | Jacob | **Flag:** not your event. Options: skip Tue lunch / shift to 13:00 / ask Jacob to move. |
+| 🥪 Lunch Mon 12:00–13:00 | Focus: Activation PRD 12:30–14:00 | You | **Propose move:** Focus → 13:00–14:30 (lunch stays) |
+| 🥪 Lunch Tue 12:00–13:00 | HOD Weekly 12:30–13:00 | Jacob | **Auto-shift lunch (Tue only):** 13:00–14:00 (slot is free; preserves 60 min; pushes later not earlier) |
 
 ### Closing prompt
 

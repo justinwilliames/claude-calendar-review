@@ -15,24 +15,66 @@ This file is the decision tree.
 Overlapping event detected with a protected block.
 │
 ├── Is the overlapping event user-owned AND has no other attendees?
-│   └── YES → Propose a MOVE of the overlapping event.
+│   └── YES → Propose a MOVE of the OVERLAPPING event (the focus block).
+│             Protected block stays put.
 │             (e.g., focus block 12:30→13:30 becomes 13:00→14:00)
 │             Apply on user approval.
 │
 ├── Is the overlapping event user-owned BUT has attendees?
-│   └── YES → FLAG for user. Options:
-│             • Move the meeting (will notify attendees)
-│             • Skip the protected block this instance
-│             • Shift the protected block this instance only
-│             NEVER auto-move without explicit instruction.
+│   └── YES → Run the SLOT-FINDER (below) on the protected block.
+│             • If a valid same-day slot exists: auto-propose shifting
+│               the protected block (this instance only). Single concrete
+│               proposal, not a menu.
+│             • If no slot fits: FLAG with three options
+│               (move meeting with notification / skip protected block /
+│               manually ask attendees).
+│             NEVER silently move a meeting with attendees.
 │
 └── Is the overlapping event organised by someone else?
-    └── YES → FLAG for user. Options:
-              • Skip the protected block this instance (EXDATE on the series)
-              • Shift the protected block this instance to a non-clashing slot
-              • Manually ask the organiser to move
+    └── YES → Run the SLOT-FINDER (below) on the protected block.
+              • If a valid same-day slot exists: auto-propose shifting
+                the protected block (this instance only).
+              • If no slot fits: FLAG with three options
+                (skip the block / shift across days / ask organiser to move).
               NEVER move someone else's event.
 ```
+
+## The slot-finder algorithm
+
+When a protected block must move around a non-movable conflict, find the best alternative slot **on the same day** using these rules in order:
+
+1. **Preserve duration.** A 60-min lunch stays 60 min. A 15-min decompress stays 15 min.
+2. **Stay inside working hours.** Default 09:00–17:00 local time. Respect the morning/wind-down bookends as outer bounds — don't push lunch before morning planning or after wind-down.
+3. **No other overlaps.** The candidate slot must be free against every other event on that day (meetings, focus blocks, other protected blocks).
+4. **Adjacent first, then widen.** Search ±2 hours from the original start time first. Only widen to ±4 hours if nothing fits in the narrow window.
+5. **Same-shape preference.** Lunch prefers full-hour starts (12:00 / 13:00 / 14:00) over odd starts (12:15 / 13:45). Decompress is flexible.
+6. **Later beats earlier.** Given two equally-valid slots, push **later** in the day. A lunch at 13:00 beats a lunch at 11:00 — preserves the rhythm of "rest in the middle of the day, not before it really started."
+7. **Don't collapse protected blocks together.** If shifting lunch to 13:00 would butt against a 13:00 decompress with no gap, find the next valid slot. Rest blocks need air around them.
+8. **Don't shift across days.** If no same-day slot works, fall back to flagging — never silently relocate Tuesday lunch to Wednesday.
+
+### Output format when slot-finder succeeds
+
+Single concrete proposal, not a buffet:
+
+> **Tuesday lunch shifts 12:00→13:00 → 13:00→14:00 (avoids HOD Weekly 12:30–13:00). OK?**
+
+Not:
+
+> ~~Tuesday lunch could be at 11:00, 13:00, or 14:30. Which would you prefer?~~
+
+The user should be able to approve with one word ("yes" / "go" / "apply") or counter-propose if the auto-pick is wrong ("no, make it 13:30"). The skill does the thinking; the user confirms.
+
+### Output format when slot-finder fails
+
+Fall back to the three-option flag:
+
+> **Tuesday lunch can't shift cleanly** — every slot 10:00–16:00 already has something. Options:
+>
+> 1. Skip Tuesday lunch (add EXDATE to the series)
+> 2. Take a short break instead (e.g., 15-min decompress at 15:00)
+> 3. Ask the meeting organiser to move
+>
+> Which?
 
 ---
 
@@ -50,13 +92,15 @@ Overlapping event detected with a protected block.
 - **Protected:** 🥪 Lunch Tue 12:00–13:00 (Banana)
 - **Overlapping:** `HOD Weekly meeting` Tue 12:30–13:00 (Blueberry, organised by Jacob, 8 attendees)
 
-**Resolution:** Flag. Do NOT touch the HOD meeting. Offer the user:
+**Resolution:** Run the slot-finder on lunch (HOD meeting is untouchable). Tuesday afternoon is free from 13:00–15:00, so the auto-pick is **13:00–14:00** — preserves 60 min, full-hour start, later not earlier, no other overlap.
 
-1. **Skip Tuesday lunch** — add an EXDATE to the lunch series for Tuesday
-2. **Shift Tuesday lunch** — change just the Tuesday instance to 13:00–14:00
-3. **Ask Jacob to move HOD** — user does this manually outside the calendar
+Present:
 
-Present all three, let user pick.
+> **Tuesday lunch shifts 12:00→13:00 → 13:00→14:00 (avoids HOD Weekly 12:30–13:00). OK?**
+
+Single instance-only change (Tuesday only — Wed/Thu/Fri lunch stays at 12:00). Apply on user approval. If the user counter-proposes ("make it 13:30"), accept and apply.
+
+If Tuesday afternoon were ALSO booked solid, slot-finder fails and the skill falls back to the three-option flag (skip Tue lunch / micro-break instead / ask Jacob to move).
 
 ### Example 3 — Focus block overlapping decompress
 
@@ -70,13 +114,12 @@ Present all three, let user pick.
 - **Protected:** 🌙 Wrap up & shut down Thu 16:30–17:00 (Flamingo)
 - **Overlapping:** `Vendor demo` Thu 16:00–17:30 (Blueberry, external organiser)
 
-**Resolution:** Flag. The wind-down is protected and the vendor meeting is not movable. Offer:
+**Resolution:** Run slot-finder. Wind-down is the day's last protected block, so the only valid "later" slot is **17:30–18:00** — that exits the default 09:00–17:00 working window. Two outcomes:
 
-1. **Skip Thursday wind-down** — EXDATE on the series
-2. **Shift Thursday wind-down** — to 17:30–18:00 just this instance
-3. **Skip the vendor demo** — user makes that call separately
+- If the user has allowed slot-finder to push outside working hours (config flag), auto-propose **17:30–18:00**.
+- If working hours are strict, slot-finder fails. Fall back to the three-option flag (skip Thursday wind-down / push to 17:30–18:00 / skip the vendor demo).
 
-Note that "skip wind-down" is often the right answer for one-off external commitments; persistent overlaps with the wind-down slot are a signal to renegotiate the slot itself.
+The wind-down is the protected block that most commonly gets sacrificed for late-day externals — that's expected and not a structural failure. Persistent overlaps with the wind-down slot are a signal to renegotiate the slot itself (move it earlier permanently).
 
 ---
 

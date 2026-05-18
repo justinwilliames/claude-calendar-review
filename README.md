@@ -15,6 +15,8 @@ Three phases, never skipped:
     - **C. Overlaps** — protected blocks intersecting other events, split by movability (your focus blocks → propose move; others' meetings → flag only)
 3. **Apply** — only on explicit approval. Recolours, creates recurring blocks, moves focus time around rest. Never auto-moves events you don't own.
 
+**Smart shift when conflicts can't be resolved by moving focus time:** if a protected block (e.g. lunch) clashes with a meeting you don't organise, the skill runs a slot-finder that proposes a concrete single-instance shift for the protected block — same day, same duration, no other overlaps, later beats earlier, full-hour preference for lunch. You get one proposal to approve, not a menu of options. Falls back to a three-option flag only if no valid slot fits.
+
 ## Hard rules
 
 - **Read before write.** Always show the diff before mutating.
