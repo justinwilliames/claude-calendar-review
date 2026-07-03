@@ -87,7 +87,11 @@ When a protected block needs to move around a non-movable event, find the best a
 6. **Later beats earlier** — given two equally-valid slots, push later. A lunch at 13:00 beats a lunch at 11:00; a decompress after the meeting beats a decompress before it.
 7. **Never collapse two protected blocks together** — if shifting lunch to 13:00 would butt against a 13:00 decompress, find the next valid slot.
 
-If the algorithm finds **no valid slot**, fall back to flagging — present the three manual options (skip the block / shift across days / ask the organiser to move).
+If the algorithm finds **no valid slot**, fall back to flagging — present the four manual options:
+1. **Skip the block for this day** — acknowledge the gap and move on.
+2. **Shift the block to another day this week** — propose the specific day and slot where the block does fit, and document the exception (e.g. "Tuesday lunch moved to Thursday 12:00–13:00 — HOD Weekly conflict"). If taken, add a note to the apply-pass output so there's a record.
+3. **Ask the organiser to move the meeting** — only viable for user-organised or flexible external meetings.
+4. **Accept the day without this block** — no rescheduling, just note the calendar gap in the summary.
 
 When a valid slot is found, present as: **"Tuesday lunch shifts 12:00→13:00 → 13:00→14:00 (avoids HOD Weekly 12:30–13:00). OK?"** — one concrete shift, not a menu.
 
@@ -220,3 +224,7 @@ See [`references/google-calendar-colours.md`](references/google-calendar-colours
 - [`references/google-calendar-colours.md`](references/google-calendar-colours.md) — Full 11-colour palette with `colorId` mapping
 - [`references/event-taxonomy.md`](references/event-taxonomy.md) — Default category definitions (bookend / rest / focus / meeting) and recommended naming conventions
 - [`references/overlap-resolution.md`](references/overlap-resolution.md) — Decision tree for resolving overlaps based on event ownership and movability
+
+## Sync homes
+
+Canonical: ~/.claude/skills/calendar-review (private, live). Public sanitized twin: ~/code/claude-skills/calendar-review → github.com/justinwilliames/claude-skills. Sanitization is a sync step — never push private names/paths.
