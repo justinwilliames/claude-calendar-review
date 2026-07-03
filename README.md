@@ -1,3 +1,5 @@
+> **⚠️ Moved (2026-07-03):** now maintained in github.com/justinwilliames/claude-skills — this repo is archived.
+
 # claude-calendar-review
 
 A Claude skill for auditing, tidying, and rebalancing a Google Calendar — colour-coding consistency, protected rest blocks (lunch, decompress, morning, wind-down), and overlap resolution between focus time and rest.
